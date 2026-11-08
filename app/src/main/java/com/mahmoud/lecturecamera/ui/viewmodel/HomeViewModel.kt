@@ -24,6 +24,12 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+data class SubjectCardItem(
+    val subject: Subject,
+    val photoCount: Int,
+    val coverUri: String? = null
+)
+
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = LectureCameraRepository(AppDatabase.getInstance(application))

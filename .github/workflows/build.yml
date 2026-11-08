@@ -5,6 +5,11 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
 
 jobs:
   build:
@@ -25,14 +30,33 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Accept Android SDK licenses
-        run: |
-          yes | sdkmanager --licenses || true
-
       - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: |
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Report Error on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let log = '';
+            try {
+              log = fs.readFileSync('build.log', 'utf8');
+              const lines = log.split('\n');
+              log = lines.slice(-80).join('\n');
+            } catch(e) {
+              log = 'Could not read build.log: ' + e;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Build Log Failure - ' + context.sha.substring(0, 7),
+              body: '```\n' + log + '\n```'
+            });
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: lecture-camera-debug
