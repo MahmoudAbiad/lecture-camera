@@ -3,4 +3,11 @@
     <string name="app_name">صور المحاضرات</string>
     <string name="scan_button">ابحث عن صور المحاضرات</string>
     <string name="uncategorized">غير مصنف</string>
+    <string name="add_subject">أضف المادة</string>
+    <string name="next">التالي</string>
+    <string name="add_slot">أضف الحصة</string>
+    <string name="finish_setup">إنهاء الإعداد</string>
+    <string name="settings">الإعدادات</string>
+    <string name="delete">حذف</string>
+    <string name="back">رجوع</string>
 </resources>

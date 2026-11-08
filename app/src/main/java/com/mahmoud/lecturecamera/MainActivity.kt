@@ -4,67 +4,70 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.mahmoud.lecturecamera.data.ScanPreferences
+import com.mahmoud.lecturecamera.ui.navigation.Screen
+import com.mahmoud.lecturecamera.ui.screen.home.HomeScreen
+import com.mahmoud.lecturecamera.ui.screen.setup.SubjectsSetupScreen
+import com.mahmoud.lecturecamera.ui.screen.setup.TimetableSetupScreen
 import com.mahmoud.lecturecamera.ui.theme.LectureCameraTheme
+import com.mahmoud.lecturecamera.ui.viewmodel.SetupViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val prefs = ScanPreferences(this)
+        val startRoute =
+            if (prefs.isOnboardingCompleted) Screen.Home.route
+            else Screen.SubjectsSetup.route
+
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 LectureCameraTheme {
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        HomeScreen(modifier = Modifier.padding(innerPadding))
+                    val navController = rememberNavController()
+                    val viewModel: SetupViewModel = viewModel()
+
+                    NavHost(navController = navController, startDestination = startRoute) {
+
+                        composable(Screen.SubjectsSetup.route) {
+                            SubjectsSetupScreen(
+                                viewModel = viewModel,
+                                onNext = { navController.navigate(Screen.TimetableSetup.route) }
+                            )
+                        }
+
+                        composable(Screen.TimetableSetup.route) {
+                            TimetableSetupScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() },
+                                onFinish = {
+                                    viewModel.completeOnboarding()
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
+                        composable(Screen.Home.route) {
+                            HomeScreen(
+                                viewModel = viewModel,
+                                onEditSetup = {
+                                    navController.navigate(Screen.SubjectsSetup.route)
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "\uD83D\uDCF7",
-            style = MaterialTheme.typography.displayLarge
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "صور المحاضرات",
-            style = MaterialTheme.typography.headlineLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "التطبيق يعمل بنجاح ✓",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
