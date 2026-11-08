@@ -8,11 +8,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.mahmoud.lecturecamera.data.ScanPreferences
 import com.mahmoud.lecturecamera.ui.navigation.Screen
+import com.mahmoud.lecturecamera.ui.screen.detail.SessionDetailScreen
+import com.mahmoud.lecturecamera.ui.screen.detail.SubjectDetailScreen
+import com.mahmoud.lecturecamera.ui.screen.detail.UncategorizedScreen
 import com.mahmoud.lecturecamera.ui.screen.home.HomeScreen
 import com.mahmoud.lecturecamera.ui.screen.review.ReviewPendingScreen
 import com.mahmoud.lecturecamera.ui.screen.setup.SubjectsSetupScreen
@@ -21,6 +26,7 @@ import com.mahmoud.lecturecamera.ui.theme.LectureCameraTheme
 import com.mahmoud.lecturecamera.ui.viewmodel.HomeViewModel
 import com.mahmoud.lecturecamera.ui.viewmodel.ReviewViewModel
 import com.mahmoud.lecturecamera.ui.viewmodel.SetupViewModel
+import com.mahmoud.lecturecamera.ui.viewmodel.SubjectDetailViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +45,7 @@ class MainActivity : ComponentActivity() {
                     val setupViewModel: SetupViewModel = viewModel()
                     val homeViewModel: HomeViewModel = viewModel()
                     val reviewViewModel: ReviewViewModel = viewModel()
+                    val detailViewModel: SubjectDetailViewModel = viewModel()
 
                     NavHost(navController = navController, startDestination = startRoute) {
 
@@ -72,10 +79,10 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.ReviewPending.route)
                                 },
                                 onOpenSubject = { subjectId ->
-                                    // سيتم تفعيله في المرحلة 7 (شاشة المادة)
+                                    navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
                                 },
                                 onOpenUncategorized = {
-                                    // سيتم تفعيله في المرحلة 7 (ألبوم غير مصنف)
+                                    navController.navigate(Screen.Uncategorized.route)
                                 }
                             )
                         }
@@ -83,6 +90,40 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.ReviewPending.route) {
                             ReviewPendingScreen(
                                 viewModel = reviewViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.SubjectDetail.route,
+                            arguments = listOf(navArgument("subjectId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val subjectId = backStackEntry.arguments?.getLong("subjectId") ?: 0L
+                            SubjectDetailScreen(
+                                subjectId = subjectId,
+                                viewModel = detailViewModel,
+                                onBack = { navController.popBackStack() },
+                                onOpenSession = { sessionId ->
+                                    navController.navigate(Screen.SessionDetail.createRoute(sessionId))
+                                }
+                            )
+                        }
+
+                        composable(
+                            route = Screen.SessionDetail.route,
+                            arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+                            SessionDetailScreen(
+                                sessionId = sessionId,
+                                viewModel = detailViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.Uncategorized.route) {
+                            UncategorizedScreen(
+                                viewModel = detailViewModel,
                                 onBack = { navController.popBackStack() }
                             )
                         }
