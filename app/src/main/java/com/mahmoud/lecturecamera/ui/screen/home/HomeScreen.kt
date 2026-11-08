@@ -34,8 +34,8 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.PhotoAlbum
-import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -486,7 +486,7 @@ private fun UncategorizedAlbumCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.QuestionMark,
+                    Icons.Default.Help,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

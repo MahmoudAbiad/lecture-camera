@@ -17,7 +17,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,7 +87,7 @@ fun UncategorizedScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.QuestionMark,
+                        Icons.Default.Help,
                         contentDescription = null,
                         modifier = Modifier.size(52.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
