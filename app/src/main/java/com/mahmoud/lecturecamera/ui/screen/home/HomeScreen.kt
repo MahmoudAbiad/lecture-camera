@@ -1,6 +1,13 @@
 package com.mahmoud.lecturecamera.ui.screen.home
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +30,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.PhotoAlbum
@@ -34,48 +42,128 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.mahmoud.lecturecamera.ui.screen.permission.PermissionExplanationDialog
 import com.mahmoud.lecturecamera.ui.viewmodel.HomeViewModel
 import com.mahmoud.lecturecamera.ui.viewmodel.SubjectCardItem
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     onEditSetup: () -> Unit,
-    onStartScan: () -> Unit,
     onOpenSubject: (Long) -> Unit = {},
     onOpenUncategorized: () -> Unit = {},
     onOpenPendingReview: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     val cards by viewModel.subjectCards.collectAsState()
     val pendingCount by viewModel.pendingCount.collectAsState()
     val uncategorizedCount by viewModel.uncategorizedCount.collectAsState()
+    val isScanning by viewModel.isScanning.collectAsState()
+
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    // الاستماع لرسائل الفحص وعرضها في Snackbar
+    LaunchedEffect(Unit) {
+        viewModel.scanMessage.collectLatest { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    // منتقي الصور اليدوي (Photo Picker) كمسار بديل بدون صلاحيات كاملة
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.addManualPhotos(uris)
+        }
+    }
+
+    // إطلاق طلب الصلاحيات
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.values.any { it }
+        if (granted) {
+            viewModel.startScan(forceFullScan = false)
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("تم رفض الصلاحية. يمكنك إضافة الصور يدوياً عبر زر الاختيار.")
+            }
+        }
+    }
+
+    // دالة فحص وتأكيد الصلاحيات
+    val requestScanWithPermissionCheck = {
+        val requiredPermissions = getRequiredPermissions()
+        val allGranted = requiredPermissions.all { perm ->
+            ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+        }
+
+        if (allGranted) {
+            viewModel.startScan(forceFullScan = false)
+        } else {
+            showPermissionDialog = true
+        }
+    }
+
+    if (showPermissionDialog) {
+        PermissionExplanationDialog(
+            onConfirm = {
+                showPermissionDialog = false
+                permissionLauncher.launch(getRequiredPermissions())
+            },
+            onDismiss = { showPermissionDialog = false },
+            onManualPickAlternative = {
+                showPermissionDialog = false
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
+        )
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -91,6 +179,22 @@ fun HomeScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 actions = {
+                    // زر إضافة صور يدوياً
+                    IconButton(
+                        onClick = {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.AddPhotoAlternate,
+                            contentDescription = "إضافة صور يدويًا",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+
+                    // زر الإعدادات
                     IconButton(onClick = onEditSetup) {
                         Icon(
                             Icons.Default.Settings,
@@ -115,7 +219,8 @@ fun HomeScreen(
             item(span = { GridItemSpan(2) }) {
                 MainScanButton(
                     pendingCount = pendingCount,
-                    onScanClick = onStartScan,
+                    isScanning = isScanning,
+                    onScanClick = requestScanWithPermissionCheck,
                     onReviewClick = onOpenPendingReview
                 )
             }
@@ -146,9 +251,27 @@ fun HomeScreen(
     }
 }
 
+private fun getRequiredPermissions(): Array<String> {
+    return when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+            arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+            )
+        }
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+            arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+        }
+        else -> {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+    }
+}
+
 @Composable
 private fun MainScanButton(
     pendingCount: Int,
+    isScanning: Boolean,
     onScanClick: () -> Unit,
     onReviewClick: () -> Unit
 ) {
@@ -162,6 +285,7 @@ private fun MainScanButton(
         Column(modifier = Modifier.padding(16.dp)) {
             Button(
                 onClick = onScanClick,
+                enabled = !isScanning,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -174,27 +298,41 @@ private fun MainScanButton(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "ابحث عن صور المحاضرات",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    if (pendingCount > 0) {
+                    if (isScanning) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.5.dp
+                        )
                         Spacer(modifier = Modifier.width(10.dp))
-                        BadgedBox(
-                            badge = {
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                ) {
-                                    Text("$pendingCount")
+                        Text(
+                            text = "جاري البحث في المعرض...",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "ابحث عن صور المحاضرات",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        if (pendingCount > 0) {
+                            Spacer(modifier = Modifier.width(10.dp))
+                            BadgedBox(
+                                badge = {
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = MaterialTheme.colorScheme.onError
+                                    ) {
+                                        Text("$pendingCount")
+                                    }
                                 }
+                            ) {
+                                Spacer(modifier = Modifier.size(12.dp))
                             }
-                        ) {
-                            Spacer(modifier = Modifier.size(12.dp))
                         }
                     }
                 }
@@ -248,7 +386,6 @@ private fun SubjectCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // صورة الغلاف أو تدرج لوني يعكس لون المادة
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -279,7 +416,6 @@ private fun SubjectCard(
                     )
                 }
 
-                // علامة صغيرة بلون المادة في زاوية الغلاف
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -293,7 +429,6 @@ private fun SubjectCard(
                 )
             }
 
-            // معلومات المادة
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = item.subject.name,
