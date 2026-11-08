@@ -14,10 +14,12 @@ import androidx.navigation.compose.rememberNavController
 import com.mahmoud.lecturecamera.data.ScanPreferences
 import com.mahmoud.lecturecamera.ui.navigation.Screen
 import com.mahmoud.lecturecamera.ui.screen.home.HomeScreen
+import com.mahmoud.lecturecamera.ui.screen.review.ReviewPendingScreen
 import com.mahmoud.lecturecamera.ui.screen.setup.SubjectsSetupScreen
 import com.mahmoud.lecturecamera.ui.screen.setup.TimetableSetupScreen
 import com.mahmoud.lecturecamera.ui.theme.LectureCameraTheme
 import com.mahmoud.lecturecamera.ui.viewmodel.HomeViewModel
+import com.mahmoud.lecturecamera.ui.viewmodel.ReviewViewModel
 import com.mahmoud.lecturecamera.ui.viewmodel.SetupViewModel
 
 class MainActivity : ComponentActivity() {
@@ -36,6 +38,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val setupViewModel: SetupViewModel = viewModel()
                     val homeViewModel: HomeViewModel = viewModel()
+                    val reviewViewModel: ReviewViewModel = viewModel()
 
                     NavHost(navController = navController, startDestination = startRoute) {
 
@@ -65,11 +68,8 @@ class MainActivity : ComponentActivity() {
                                 onEditSetup = {
                                     navController.navigate(Screen.SubjectsSetup.route)
                                 },
-                                onStartScan = {
-                                    // سيتم تفعيله في المرحلة 5 (المسح)
-                                },
                                 onOpenPendingReview = {
-                                    // سيتم تفعيله في المرحلة 6 (مراجعة الاقتراحات)
+                                    navController.navigate(Screen.ReviewPending.route)
                                 },
                                 onOpenSubject = { subjectId ->
                                     // سيتم تفعيله في المرحلة 7 (شاشة المادة)
@@ -77,6 +77,13 @@ class MainActivity : ComponentActivity() {
                                 onOpenUncategorized = {
                                     // سيتم تفعيله في المرحلة 7 (ألبوم غير مصنف)
                                 }
+                            )
+                        }
+
+                        composable(Screen.ReviewPending.route) {
+                            ReviewPendingScreen(
+                                viewModel = reviewViewModel,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }
