@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">صور المحاضرات</string>
+    <string name="scan_button">ابحث عن صور المحاضرات</string>
+    <string name="uncategorized">غير مصنف</string>
+</resources>
