@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.PhotoAlbum
 import androidx.compose.material.icons.filled.QuestionMark
@@ -86,6 +87,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel,
     onEditSetup: () -> Unit,
+    onOpenErrorLog: () -> Unit,
     onOpenSubject: (Long) -> Unit = {},
     onOpenUncategorized: () -> Unit = {},
     onOpenPendingReview: () -> Unit = {},
@@ -102,14 +104,12 @@ fun HomeScreen(
 
     var showPermissionDialog by remember { mutableStateOf(false) }
 
-    // الاستماع لرسائل الفحص وعرضها في Snackbar
     LaunchedEffect(Unit) {
         viewModel.scanMessage.collectLatest { msg ->
             snackbarHostState.showSnackbar(msg)
         }
     }
 
-    // منتقي الصور اليدوي (Photo Picker) كمسار بديل بدون صلاحيات كاملة
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
     ) { uris ->
@@ -118,7 +118,6 @@ fun HomeScreen(
         }
     }
 
-    // إطلاق طلب الصلاحيات
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -132,7 +131,6 @@ fun HomeScreen(
         }
     }
 
-    // دالة فحص وتأكيد الصلاحيات
     val requestScanWithPermissionCheck = {
         val requiredPermissions = getRequiredPermissions()
         val allGranted = requiredPermissions.all { perm ->
@@ -179,7 +177,6 @@ fun HomeScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 actions = {
-                    // زر إضافة صور يدوياً
                     IconButton(
                         onClick = {
                             photoPickerLauncher.launch(
@@ -194,7 +191,14 @@ fun HomeScreen(
                         )
                     }
 
-                    // زر الإعدادات
+                    IconButton(onClick = onOpenErrorLog) {
+                        Icon(
+                            Icons.Default.BugReport,
+                            contentDescription = "سجل الأخطاء",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+
                     IconButton(onClick = onEditSetup) {
                         Icon(
                             Icons.Default.Settings,
@@ -215,7 +219,6 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ── زر الفحص الرئيسي البارز ───────────────────────────────────
             item(span = { GridItemSpan(2) }) {
                 MainScanButton(
                     pendingCount = pendingCount,
@@ -225,13 +228,11 @@ fun HomeScreen(
                 )
             }
 
-            // ── حالة لا توجد مواد بعد ────────────────────────────────────
             if (cards.isEmpty()) {
                 item(span = { GridItemSpan(2) }) {
                     EmptyStateCard(onSetupClick = onEditSetup)
                 }
             } else {
-                // ── بطاقات المواد (بطاقتان في كل صف) ──────────────────────────
                 items(cards, key = { it.subject.id }) { item ->
                     SubjectCard(
                         item = item,
@@ -239,7 +240,6 @@ fun HomeScreen(
                     )
                 }
 
-                // ── بطاقة ألبوم "غير مصنف" ──────────────────────────────────
                 item(span = { GridItemSpan(2) }) {
                     UncategorizedAlbumCard(
                         count = uncategorizedCount,

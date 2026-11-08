@@ -18,6 +18,7 @@ import com.mahmoud.lecturecamera.ui.navigation.Screen
 import com.mahmoud.lecturecamera.ui.screen.detail.SessionDetailScreen
 import com.mahmoud.lecturecamera.ui.screen.detail.SubjectDetailScreen
 import com.mahmoud.lecturecamera.ui.screen.detail.UncategorizedScreen
+import com.mahmoud.lecturecamera.ui.screen.error.ErrorLogScreen
 import com.mahmoud.lecturecamera.ui.screen.home.HomeScreen
 import com.mahmoud.lecturecamera.ui.screen.review.ReviewPendingScreen
 import com.mahmoud.lecturecamera.ui.screen.setup.SubjectsSetupScreen
@@ -75,6 +76,9 @@ class MainActivity : ComponentActivity() {
                                 onEditSetup = {
                                     navController.navigate(Screen.SubjectsSetup.route)
                                 },
+                                onOpenErrorLog = {
+                                    navController.navigate(Screen.ErrorLog.route)
+                                },
                                 onOpenPendingReview = {
                                     navController.navigate(Screen.ReviewPending.route)
                                 },
@@ -90,6 +94,12 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.ReviewPending.route) {
                             ReviewPendingScreen(
                                 viewModel = reviewViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.ErrorLog.route) {
+                            ErrorLogScreen(
                                 onBack = { navController.popBackStack() }
                             )
                         }
