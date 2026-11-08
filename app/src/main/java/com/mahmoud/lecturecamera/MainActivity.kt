@@ -17,6 +17,7 @@ import com.mahmoud.lecturecamera.ui.screen.home.HomeScreen
 import com.mahmoud.lecturecamera.ui.screen.setup.SubjectsSetupScreen
 import com.mahmoud.lecturecamera.ui.screen.setup.TimetableSetupScreen
 import com.mahmoud.lecturecamera.ui.theme.LectureCameraTheme
+import com.mahmoud.lecturecamera.ui.viewmodel.HomeViewModel
 import com.mahmoud.lecturecamera.ui.viewmodel.SetupViewModel
 
 class MainActivity : ComponentActivity() {
@@ -33,23 +34,24 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 LectureCameraTheme {
                     val navController = rememberNavController()
-                    val viewModel: SetupViewModel = viewModel()
+                    val setupViewModel: SetupViewModel = viewModel()
+                    val homeViewModel: HomeViewModel = viewModel()
 
                     NavHost(navController = navController, startDestination = startRoute) {
 
                         composable(Screen.SubjectsSetup.route) {
                             SubjectsSetupScreen(
-                                viewModel = viewModel,
+                                viewModel = setupViewModel,
                                 onNext = { navController.navigate(Screen.TimetableSetup.route) }
                             )
                         }
 
                         composable(Screen.TimetableSetup.route) {
                             TimetableSetupScreen(
-                                viewModel = viewModel,
+                                viewModel = setupViewModel,
                                 onBack = { navController.popBackStack() },
                                 onFinish = {
-                                    viewModel.completeOnboarding()
+                                    setupViewModel.completeOnboarding()
                                     navController.navigate(Screen.Home.route) {
                                         popUpTo(0) { inclusive = true }
                                     }
@@ -59,9 +61,21 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.Home.route) {
                             HomeScreen(
-                                viewModel = viewModel,
+                                viewModel = homeViewModel,
                                 onEditSetup = {
                                     navController.navigate(Screen.SubjectsSetup.route)
+                                },
+                                onStartScan = {
+                                    // سيتم تفعيله في المرحلة 5 (المسح)
+                                },
+                                onOpenPendingReview = {
+                                    // سيتم تفعيله في المرحلة 6 (مراجعة الاقتراحات)
+                                },
+                                onOpenSubject = { subjectId ->
+                                    // سيتم تفعيله في المرحلة 7 (شاشة المادة)
+                                },
+                                onOpenUncategorized = {
+                                    // سيتم تفعيله في المرحلة 7 (ألبوم غير مصنف)
                                 }
                             )
                         }

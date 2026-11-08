@@ -5,6 +5,7 @@ import com.mahmoud.lecturecamera.data.entity.Photo
 import com.mahmoud.lecturecamera.data.entity.Session
 import com.mahmoud.lecturecamera.data.entity.Subject
 import com.mahmoud.lecturecamera.data.entity.TimetableSlot
+import kotlinx.coroutines.flow.Flow
 
 /**
  * مستودع بيانات موحّد — الواجهة الوحيدة بين طبقة المنطق وقاعدة البيانات
@@ -67,8 +68,13 @@ class LectureCameraRepository(private val db: AppDatabase) {
 
     fun getPendingCount() = db.photoDao().getPendingCount()
 
+    fun getUncategorizedCount() = db.photoDao().getUncategorizedCount()
+
     fun getAcceptedCountBySubject(subjectId: Long) =
         db.photoDao().getAcceptedCountBySubject(subjectId)
+
+    fun getLatestPhotoUriForSubject(subjectId: Long): Flow<String?> =
+        db.photoDao().getLatestPhotoUriForSubject(subjectId)
 
     suspend fun getPhotoByMediaStoreId(mediaStoreId: Long) =
         db.photoDao().getByMediaStoreId(mediaStoreId)

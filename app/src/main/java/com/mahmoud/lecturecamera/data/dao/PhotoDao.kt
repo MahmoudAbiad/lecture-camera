@@ -28,8 +28,14 @@ interface PhotoDao {
     @Query("SELECT COUNT(*) FROM photos WHERE status = 'PENDING'")
     fun getPendingCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM photos WHERE status = 'REJECTED'")
+    fun getUncategorizedCount(): Flow<Int>
+
     @Query("SELECT COUNT(*) FROM photos WHERE subjectId = :subjectId AND status = 'ACCEPTED'")
     fun getAcceptedCountBySubject(subjectId: Long): Flow<Int>
+
+    @Query("SELECT mediaStoreUri FROM photos WHERE subjectId = :subjectId AND status = 'ACCEPTED' ORDER BY capturedAt DESC LIMIT 1")
+    fun getLatestPhotoUriForSubject(subjectId: Long): Flow<String?>
 
     @Query("SELECT * FROM photos WHERE mediaStoreId = :mediaStoreId LIMIT 1")
     suspend fun getByMediaStoreId(mediaStoreId: Long): Photo?
